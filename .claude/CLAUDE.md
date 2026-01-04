@@ -1,0 +1,428 @@
+In all interactions be extremely concise and sacrifice grammar for the sake of concision.
+
+# Project Configuration
+
+This project uses Claude Code with specialized agents and hooks for orchestrated development workflows.
+
+## Available Commands
+
+### `/architect` - BDD-TDD Development Workflow
+Use this command to create implementation prompts following BDD and TDD best practices:
+- Creates greenfield specification for the feature
+- Generates Gherkin BDD scenarios
+- Converts scenarios to TDD prompts
+- Tests are written from Gherkin scenarios (Red phase)
+- Implementation follows to make tests pass (Green phase)
+- Full quality gates: standards checks and testing
+
+**When to use**: For new features where you want comprehensive BDD test coverage.
+
+**Example**: `/architect Build a user authentication system with JWT`
+
+**Flow**: init-explorer → architect → **alternate-solutions** → **architecture-evaluator** → **request-fidelity-validator** → bdd-agent → **request-fidelity-validator** → test-consistency-validator → gherkin-to-test → codebase-analyst → refactor-decision → test-creator → test-consistency-validator → **test-evaluator** → **coder-orchestrator** → coder → standards → tester → bdd-test-runner
+
+### `/coder` - Orchestrated Development
+Use this command when you want to implement features with full orchestration:
+- Automatically breaks down tasks into to-do items
+- Delegates implementation to specialized coder agents
+- Enforces coding standards through automated checks
+- Runs tests automatically after implementation
+- Provides comprehensive quality gates
+
+**When to use**: For implementing new features, building projects, or complex multi-step coding tasks where you want direct manual orchestration.
+
+**Example**: `/coder Build a REST API with user authentication`
+
+### `/refactor` - Code Refactoring
+Use this command to refactor existing code to adhere to coding standards.
+
+**When to use**: When you need to improve code quality without changing functionality.
+
+**Example**: `/refactor src/components/UserForm.js`
+
+### `/verifier` - Code Verification and Investigation
+Use this command to investigate source code and verify claims, answer questions, or determine if queries are true/false.
+
+**When to use**: When you need to verify a claim about the codebase, answer questions about code structure or functionality, or investigate specific code patterns.
+
+**Example**: `/verifier Does the codebase have email validation?`
+
+### `/fix-failing-tests` - Fix Failing Tests
+Use this command to run the project's test suite and automatically fix any failures.
+
+**When to use**: When tests are failing and you want to automatically attempt to fix them.
+
+**Example**: `/fix-failing-tests`
+
+### `/debugger` - CRASH-RCA Forensic Debugging
+Use this command to start a forensic Root Cause Analysis debugging session:
+- Enforces read-only investigation mode (Write/Edit tools blocked)
+- Logs every investigation step with hypothesis and confidence
+- Tracks evidence chain throughout investigation
+- Generates structured RCA report on completion
+
+**When to use**: When you need to systematically investigate a bug or issue with disciplined, evidence-based analysis.
+
+**Example**: `/debugger Login API returns 500 errors intermittently`
+
+**Flow**:
+1. `init-explorer` gathers project context and progress
+2. `crash.py start` initializes session (Forensic Mode ON)
+3. `crash.py step` logs each hypothesis before investigation
+4. Read-only tools gather evidence (Grep, Read, Glob, Bash)
+5. `crash.py diagnose` generates RCA report (Forensic Mode OFF)
+
+**Key Features**:
+- **Forensic Mode**: Write/Edit blocked until diagnosis complete
+- **Hypothesis Logging**: Every investigation step recorded
+- **Evidence Chain**: All findings tracked with file:line references
+- **Structured Report**: Standardized RCA output format
+
+## Project Structure
+
+- `.claude/agents/` - Specialized agent configurations
+  - `init-explorer.md` - Initializer agent that explores codebase and sets up context
+  - `architect.md` - Greenfield spec designer
+  - `alternate-solutions.md` - Generates 3 alternative architectural solutions
+  - `architecture-evaluator.md` - Evaluates and selects optimal solution (uses opus model)
+  - `request-fidelity-validator.md` - Semantic guardrail preventing agent drift from user request
+  - `bdd-agent.md` - BDD specialist that generates Gherkin scenarios
+  - `scope-manager.md` - Complexity gatekeeper for BDD features
+  - `gherkin-to-test.md` - Converts Gherkin to TDD prompts
+  - `codebase-analyst.md` - Finds reuse opportunities
+  - `refactor-decision-engine.md` - Decides if refactoring needed
+  - `test-creator.md` - TDD specialist that writes tests first
+  - `test-consistency-validator.md` - Validates test names match their contents
+  - `test-evaluator.md` - Evaluates TDD test quality, rejects weak assertions (booleans, single properties)
+  - `code-searcher.md` - Searches codebase for existing implementations before coding
+  - `coder-orchestrator.md` - Task delegation specialist that reads ONE task and delegates to coder
+  - `coder.md` - Implementation specialist (invoked by coder-orchestrator with single task)
+  - `coding-standards-checker.md` - Code quality verifier
+  - `tester.md` - Functionality verification
+  - `bdd-test-runner.md` - Test infrastructure validator (Dockerfile.test, Makefile)
+  - `refactorer.md` - Code refactoring specialist
+  - `fix-failing-tests.md` - Fix failing tests specialist
+  - `verifier.md` - Code investigation specialist
+  - `stuck.md` - Human escalation agent
+  - `debugger.md` - CRASH-RCA orchestrator for forensic debugging
+  - `forensic.md` - Investigation specialist for CRASH sessions
+  - `analyst.md` - RCA synthesis specialist
+  - `run-prompt.md` - Executes prompts from `./prompts/` with intelligent routing (TDD, BDD, coder, general-purpose)
+- `.claude/coding-standards/` - Code quality standards
+- `.claude/commands/` - Custom slash commands
+- `.claude/hooks/` - Automated workflow hooks
+- `.claude/config.json` - Project configuration
+- `.claude/skills/` - Reusable skills for Claude Code
+  - `context-initializer/` - Auto-invokes init-explorer when context is empty
+  - `strict-architecture/` - Enforces governance rules for code
+  - `exa-websearch/` - Uses Exa API for intelligent web searches
+  - `docker-backend/` - Dockerizes backend projects with latest base images and Makefile
+- `tests/bdd/` - Gherkin feature files for BDD scenarios
+
+## Hooks System
+
+This project uses Claude Code hooks to automatically enforce quality gates:
+
+### Configured Hooks
+
+1. **post-init-explorer.sh** - Signals that project context is gathered
+2. **post-bdd-agent.sh** - Signals gherkin-to-test after BDD scenarios generated
+3. **post-gherkin-to-test.sh** - Signals run-prompt after prompts created
+4. **post-test-consistency-validator.sh** - After test names validated, triggers test-evaluator for assertion quality
+5. **post-test-evaluator.sh** - After assertion quality validated, triggers coder-orchestrator (or returns to test-creator if weak)
+6. **post-coder-standards-check.sh** - Triggers coding standards check after coder completes
+7. **post-standards-testing.sh** - Triggers testing after standards check passes
+8. **post-tester-infrastructure.sh** - Triggers bdd-test-runner to validate test infrastructure
+9. **post-coder-orchestrator-loop.py** - After tester completes, checks for remaining tasks and loops back to coder-orchestrator if tasks remain
+10. **crash-guardrail.py** - Blocks Write/Edit tools during CRASH debugging sessions
+
+Hooks create state files in `.claude/.state/` to track workflow completion.
+
+### Init-Explorer Agent
+
+The `init-explorer` agent is the **initializer** that runs at the start of `/architect` and `/debugger` workflows. It:
+
+1. **Orients to the project**: Runs `pwd`, `ls`, `git log`, `git status`
+2. **Reads progress history**: Checks `claude-progress.txt` for previous session context
+3. **Reads digest**: Checks `architects_digest.md` for task stack and recursive state
+4. **Explores structure**: Uses the Explore agent to analyze tech stack and patterns
+5. **Updates progress**: Logs this session's start to `claude-progress.txt`
+6. **Invokes next agent**: Hands off to `architect` or `debugger` with full context
+
+### Session Continuity Files
+
+| File | Purpose |
+|------|---------|
+| `claude-progress.txt` | Session log showing what agents have done across context windows |
+| `architects_digest.md` | Recursive task breakdown and architecture state |
+| `feature_list.md` | Comprehensive feature requirements with completion status |
+| `.feature_list.md.example` | Example template created if `feature_list.md` is missing |
+
+### Request Fidelity Validator (Anti-Drift Guardrail)
+
+The `request-fidelity-validator` agent prevents a critical failure mode: **Agent Drift**.
+
+**The Problem**: Agents can "interpret" user requests in ways that drift from intent:
+- User says "landing page" → Agent builds "dashboard"
+- User says "org chart" → Agent builds "team metrics"
+- User says "simple button" → Agent builds "component library"
+
+**How It Works**:
+1. Extracts key nouns, verbs, and constraints from the user's exact words
+2. Scans agent-generated artifacts for those exact terms
+3. Flags substitutions (e.g., "dashboard" instead of "landing page")
+4. Rejects artifacts that don't preserve the user's language
+
+**When It Runs**:
+- After `architect` creates a spec → validates `specs/DRAFT-*.md`
+- After `architect` decomposes a task → validates decomposition traces to root
+- After `bdd-agent` creates scenarios → validates `tests/bdd/*.feature`
+
+**Failure Handling**:
+- If validation FAILS, the artifact is returned to its originating agent
+- Agent must revise using the user's exact terms
+- Pipeline cannot proceed until validation PASSES
+
+**The Golden Rule**:
+> If the user could read the artifact and say "That's not what I asked for", the validator will FAIL it.
+
+### Hierarchical Traceability (Decomposition Support)
+
+Complex requests get broken into sub-tasks. The validator supports **three validation modes**:
+
+| Mode | When Used | What It Checks |
+|------|-----------|----------------|
+| **Direct** | Spec or scenario (leaf node) | Root request terms appear in artifact |
+| **Decomposition** | Task broken into sub-tasks | Each sub-task traces to root; all root terms covered |
+| **Aggregation** | All sub-tasks complete | Sum of sub-tasks fulfills original request |
+
+**Example Valid Decomposition**:
+```
+Root Request: "Build an org chart landing page"
+├── 1. Create employee data model     ← Traces to "org chart"
+├── 2. Build tree component           ← Traces to "org chart"
+├── 3. Design landing page layout     ← Traces to "landing page"
+└── 4. Integrate chart into page      ← Traces to both
+```
+
+**Example Invalid Decomposition (DRIFT)**:
+```
+Root Request: "Build an org chart landing page"
+├── 1. Create employee data model     ← OK
+├── 2. Build productivity dashboard   ← DRIFT: "dashboard" ≠ "landing page"
+├── 3. Add team metrics               ← DRIFT: not in root request
+└── 4. Create reporting system        ← DRIFT: not in root request
+```
+
+**Decomposition Justification Requirement**:
+When the architect decomposes a task, they MUST include a justification table in `architects_digest.md`:
+
+```markdown
+## Root Request
+"Build an org chart landing page"
+
+### Decomposition Justification for Task 1
+| Sub-Task | Traces To Root Term | Because |
+|----------|---------------------|---------|
+| 1.1 Employee data model | "org chart" | Chart needs employee data |
+| 1.2 Tree component | "org chart" | Visual hierarchy display |
+| 1.3 Landing layout | "landing page" | Page structure |
+| 1.4 Integration | Both | Combines into final product |
+```
+
+Without this justification, the validator will REJECT the decomposition.
+
+### Feature List Protocol
+
+The `feature_list.md` file prevents two common agent failure modes:
+- **One-shotting**: Trying to implement everything at once
+- **Premature victory**: Declaring the project done before all features work
+
+**Rules for agents**:
+1. Only modify the status checkbox - Never remove or edit feature descriptions
+2. Mark `[x] Complete` only after verified testing - Not after implementation
+3. Work on one feature at a time - Incremental progress
+4. Read feature list at session start - Choose highest-priority incomplete feature
+
+### CRASH-RCA Scripts
+
+Located in `.claude/scripts/`:
+
+- **crash.py** - State manager for forensic debugging sessions
+  - `crash.py start "issue"` - Initialize session
+  - `crash.py step --hypothesis "..." --action "..." --confidence 0.7` - Log investigation step
+  - `crash.py status` - Check session state
+  - `crash.py diagnose --root_cause "..." --justification "..." --evidence "..."` - Complete with RCA
+  - `crash.py cancel` - Abort session
+
+## Documentation Guidelines
+
+- Place markdown documentation in `./docs/`
+- Keep `README.md` in the root directory
+- Ensure all header/footer links have actual pages (no 404s)
+
+## Database Migration Rules (Flyway)
+
+If the project already has a `./sql` folder, you cannot modify any of these existing files since these are used for Flyway migrations. Your only option if you need to make changes to the database schema is to add new `.sql` files.
+
+## Workflow Comparison
+
+### BDD-TDD Workflow (`/architect`)
+**Best for**: New features with comprehensive test coverage, behavior-driven development
+
+**Flow**:
+1. `init-explorer` gathers project context, creates `architects_digest.md`
+2. `architect` creates greenfield spec (or decomposes complex tasks)
+3. `request-fidelity-validator` validates spec preserves user's exact request (loops back to architect if drift detected)
+4. `bdd-agent` generates Gherkin scenarios
+5. `request-fidelity-validator` validates scenarios preserve user's exact request (loops back to bdd-agent if drift detected)
+6. `scope-manager` validates complexity (loops back to Architect if too complex)
+7. `test-consistency-validator` validates Gherkin scenario names match their steps (loops back to bdd-agent if inconsistent)
+8. `gherkin-to-test` invokes codebase-analyst and creates prompts
+9. `run-prompt` executes prompts sequentially
+10. For each prompt:
+    - `test-creator` writes tests from Gherkin
+    - `test-consistency-validator` validates test names match content (loops back to test-creator if inconsistent)
+    - `test-evaluator` evaluates assertion quality (loops back to test-creator if weak assertions)
+    - `coder-orchestrator` reads ONE task and delegates to coder
+    - `coder` implements to pass tests
+    - `coding-standards-checker` verifies quality (runs after each coder task)
+    - `tester` validates functionality (runs after each coder task)
+    - `post-coder-orchestrator-loop.py` hook checks for remaining tasks (loops back to coder-orchestrator if tasks remain)
+    - `bdd-test-runner` validates test infrastructure (Dockerfile.test, Makefile, `make test`)
+
+**Benefits**:
+- Session continuity via `claude-progress.txt` and `feature_list.md`
+- Prevents one-shotting and premature victory
+- Tests derived from business-readable Gherkin scenarios
+- Clear traceability from requirements to tests to code
+- Full quality gates
+- Living documentation via `.feature` files
+
+### Direct Implementation (`/coder`)
+**Best for**: Quick fixes, manual orchestration, iterative development
+
+**Flow**:
+1. Orchestrator breaks down task into todos
+2. `coder-orchestrator` reads ONE task and delegates to coder
+3. `coder` agent implements the single task
+4. `coding-standards-checker` verifies code quality (runs after each coder task)
+5. `tester` validates functionality (runs after each coder task)
+6. `post-coder-orchestrator-loop.py` hook checks for remaining tasks (loops back to step 2 if tasks remain)
+
+**Benefits**:
+- Manual control over task breakdown
+- Direct implementation without test-first approach
+- Iterative todo-based workflow
+- Coder receives ONE task at a time (lean context)
+- Quality gates run after each task, not batched at end
+
+### Prompt Execution (`run-prompt` agent)
+**Best for**: Executing pre-created prompts, batch operations
+
+**Invocation**: `Task(subagent_type="run-prompt", prompt="005 006 007 --sequential")`
+
+**Flow**:
+- Detects task type (TDD, BDD, direct code, or research)
+- Routes to appropriate workflow
+- Can execute multiple prompts in parallel or sequential
+- Supports executor override via frontmatter (`tdd`, `bdd`, `coder`, `general-purpose`)
+
+**Benefits**:
+- Flexible execution strategies
+- Batch processing
+- Intelligent routing
+- BDD prompts always run sequentially
+
+## Available Skills
+
+### `context-initializer` - Auto-Context Gathering
+This skill automatically invokes the init-explorer agent when Claude Code lacks project context.
+
+**When it activates**:
+- No project context available (don't know tech stack, purpose, structure)
+- Missing `claude-progress.txt` or `architects_digest.md`
+- User asks context-dependent questions without prior exploration
+- Starting a new task without codebase understanding
+
+**What it does**: Invokes init-explorer to gather project context including tech stack, directory structure, coding patterns, test setup, and build commands.
+
+**Usage**: Invoke the skill with `skill: "context-initializer"` when you detect empty context.
+
+### `exa-websearch` - Intelligent Web Search via Exa API
+**IMPORTANT**: This skill REPLACES the built-in `WebSearch` tool. Always use this skill instead of `WebSearch`.
+
+This skill uses the Exa API for intelligent web searches. It provides semantic search capabilities that understand query meaning.
+
+**When it activates**:
+- User asks about current events, news, or recent developments
+- User needs up-to-date information beyond Claude's knowledge cutoff
+- User needs latest documentation, API versions, or technical references
+- User wants comprehensive research on a topic
+- User wants to verify current facts, prices, or statistics
+- User asks about time-sensitive data (stock prices, weather, sports)
+- User wants to find pages similar to a given URL
+- **Any situation where you would use the built-in `WebSearch` tool**
+
+**Prerequisites**: Requires `EXA_API_TOKEN` environment variable to be set.
+
+**What it does**: Performs web searches using Exa's neural/semantic search, which understands the meaning of queries rather than just matching keywords. Supports filtering by category (news, research paper, github, etc.), date ranges, and specific domains.
+
+**Usage**: Invoke the skill with `skill: "exa-websearch"` for ALL web search needs. Do NOT use the built-in `WebSearch` tool.
+
+### `docker-backend` - Backend Dockerization
+This skill containerizes backend projects with auto-detection, latest base images, and Makefile management.
+
+**When it activates**:
+- User asks to dockerize a backend project
+- User needs a Dockerfile for Node.js, Python, or Go backend
+- User needs Docker management via Makefile (build, start, stop, restart)
+- Backend project lacks containerization
+
+**What it does**:
+1. Detects backend at `./` or `./backend/`
+2. Uses `tech-stack-analyzer` to identify language/runtime
+3. Searches web for latest base image version
+4. Generates Dockerfile with appropriate template
+5. Validates with `docker build`
+6. Creates Makefile with `HOST_PORT` override support
+7. Validates with `make build restart`
+
+**Port Override**:
+```bash
+make start HOST_PORT=3000
+# or
+HOST_PORT=3000 make restart
+```
+
+**Usage**: Invoke with `skill: "docker-backend"` when dockerizing backend projects.
+
+## General Usage
+
+For exploratory tasks, questions, or non-coding requests, you can interact with Claude Code normally without using specialized commands. Use:
+- `/architect` for new features with TDD approach
+- `/coder` for direct orchestrated implementation
+- `run-prompt` agent for executing saved prompts (invoked via Task tool, not slash command)
+- `/refactor` for code quality improvements
+- `/fix-failing-tests` for fixing failing tests automatically
+- `/verifier` for code investigation
+- `/debugger` for forensic root cause analysis
+
+### Forensic Debugging Workflow (`/debugger`)
+**Best for**: Systematic bug investigation, intermittent issues, production incidents
+
+**Flow**:
+1. `init-explorer` gathers project context, reads progress and feature list
+2. `/debugger "issue description"` starts CRASH-RCA session
+3. Forensic Mode activates (Write/Edit blocked)
+4. Log hypothesis with `crash.py step`
+5. Investigate with read-only tools (Grep, Read, Glob)
+6. Repeat steps 4-5 until confidence > 0.8
+7. Complete with `crash.py diagnose`
+
+**Benefits**:
+- Session continuity via `claude-progress.txt`
+- Prevents accidental code changes during investigation
+- Forces disciplined hypothesis-driven debugging
+- Creates audit trail of investigation steps
+- Generates standardized RCA reports
