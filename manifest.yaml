@@ -31,6 +31,52 @@ skills:
     path: skills/repo/setup
     depends_on: [backend-docker, frontend-docker, frontend-tests-docker, backend-tests-docker]
 
+  # Claude Code Skills
+  code-searcher:
+    description: "Delegates codebase searches to a lightweight agent. Use when searching for existing implementations, classes, or functions without loading search results into context."
+    path: skills/code-searcher
+    depends_on: []
+
+  context-initializer:
+    description: "Automatically invokes init-explorer agent when project context is empty or unknown."
+    path: skills/context-initializer
+    depends_on: []
+
+  docker-backend:
+    description: "Dockerizes backend projects with auto-detection, latest base images via web search, Dockerfile generation, and Makefile with port override support."
+    path: skills/docker-backend
+    depends_on: []
+
+  exa-websearch:
+    description: "Uses Exa API for intelligent web searches. Provides up-to-date information with semantic search capabilities."
+    path: skills/exa-websearch
+    depends_on: []
+
+  fastapi-clean-architecture:
+    description: "Transforms bloated FastAPI handlers into a clean layered architecture with thin handlers, service classes, repositories, and domain exceptions."
+    path: skills/fastapi-clean-architecture
+    depends_on: []
+
+  strict-architecture:
+    description: "Enforces universal strict governance rules (500 lines, 5 funcs, 4 args) and interface-first I/O for Python, Golang, and .NET."
+    path: skills/strict-architecture
+    depends_on: []
+
+  tech-stack-analyzer:
+    description: "Delegates tech stack detection to a lightweight agent. Use when you need to know the project's language, frameworks, or dependencies without loading manifest files into context."
+    path: skills/tech-stack-analyzer
+    depends_on: []
+
+  test-pattern-detector:
+    description: "Delegates test pattern detection to a lightweight agent. Use when you need to understand existing test conventions without loading test files into context."
+    path: skills/test-pattern-detector
+    depends_on: []
+
+  violation-scanner:
+    description: "Delegates coding standards violation scanning to a lightweight agent. Use when checking files for violations without loading full source files into context."
+    path: skills/violation-scanner
+    depends_on: []
+
 
 # =============================================================================
 # TASKS: What users ask for (maps to one or more skills)
