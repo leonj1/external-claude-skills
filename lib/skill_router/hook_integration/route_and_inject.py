@@ -56,7 +56,8 @@ def main() -> int:
 
         # 5. Check for error route result
         if route_result.route_type == RouteType.ERROR:
-            # No skill context for error results, exit with code 1
+            # No skill context for error results, log and exit with code 1
+            print(f"Error: Failed to route query: '{query}'", file=sys.stderr)
             return 1
 
         # 6. Generate skill context
