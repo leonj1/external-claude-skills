@@ -7,83 +7,83 @@ skills:
   # Infrastructure - Base Layer
   terraform-base:
     description: "Terraform state backend, providers, and module conventions"
-    path: infrastructure/terraform-base
+    path: skills/infrastructure/terraform-base
     depends_on: []
     
   ecr-setup:
     description: "AWS ECR container registry setup"
-    path: infrastructure/ecr-setup
+    path: skills/infrastructure/ecr-setup
     depends_on: [terraform-base]
 
   # Infrastructure - AWS
   aws-static-hosting:
     description: "S3 + CloudFront for static asset hosting"
-    path: infrastructure/aws-static-hosting
+    path: skills/infrastructure/aws-static-hosting
     depends_on: [terraform-base]
     
   aws-ecs-deployment:
     description: "ECS Fargate container deployment with load balancing"
-    path: infrastructure/aws-ecs-deployment
+    path: skills/infrastructure/aws-ecs-deployment
     depends_on: [terraform-base, ecr-setup]
     
   aws-lambda-deployment:
     description: "Lambda function deployment with API Gateway"
-    path: infrastructure/aws-lambda-deployment
+    path: skills/infrastructure/aws-lambda-deployment
     depends_on: [terraform-base]
 
   # Infrastructure - Kubernetes
   eks-cluster:
     description: "AWS EKS Kubernetes cluster setup"
-    path: infrastructure/eks-cluster
+    path: skills/infrastructure/eks-cluster
     depends_on: [terraform-base]
     
   k8s-deployment:
     description: "Kubernetes deployment manifests and Helm charts"
-    path: infrastructure/k8s-deployment
+    path: skills/infrastructure/k8s-deployment
     depends_on: [eks-cluster]
 
   # Application Frameworks
   nextjs-standards:
     description: "Next.js project structure and conventions"
-    path: frameworks/nextjs-standards
+    path: skills/frameworks/nextjs-standards
     depends_on: []
     
   react-admin-standards:
     description: "React admin dashboard patterns and components"
-    path: frameworks/react-admin-standards
+    path: skills/frameworks/react-admin-standards
     depends_on: []
     
   fastapi-standards:
     description: "FastAPI project structure and conventions"
-    path: frameworks/fastapi-standards
+    path: skills/frameworks/fastapi-standards
     depends_on: []
 
   # Auth & Security
   auth-cognito:
     description: "AWS Cognito authentication setup"
-    path: auth/auth-cognito
+    path: skills/auth/auth-cognito
     depends_on: [terraform-base]
     
   auth-auth0:
     description: "Auth0 authentication integration"
-    path: auth/auth-auth0
+    path: skills/auth/auth-auth0
     depends_on: []
 
   # Data
   rds-postgres:
     description: "AWS RDS PostgreSQL database setup"
-    path: data/rds-postgres
+    path: skills/data/rds-postgres
     depends_on: [terraform-base]
     
   dynamodb-setup:
     description: "DynamoDB table setup with access patterns"
-    path: data/dynamodb-setup
+    path: skills/data/dynamodb-setup
     depends_on: [terraform-base]
 
   # CI/CD
   github-actions-cicd:
     description: "GitHub Actions CI/CD pipelines"
-    path: cicd/github-actions
+    path: skills/cicd/github-actions
     depends_on: []
 
 
