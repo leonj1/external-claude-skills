@@ -118,6 +118,16 @@ skills:
 # TASKS: What users ask for (maps to one or more skills)
 # =============================================================================
 tasks:
+  # Project Setup
+  local-dev-setup:
+    description: "Setup a git repo project for local development with Docker and Makefile"
+    triggers:
+      - "add Makefile"
+      - "setup Makefile"
+      - "setup make"
+      - "setup project to local development"
+    skills: [backend-docker, backend-tests-docker, frontend-docker, frontend-tests-docker, project-makefile]
+
   # Web Development - Static
   static-website:
     description: "Static website, landing page, marketing site, or documentation site"
