@@ -11,10 +11,11 @@ Feature: LLM-Based Discovery (Tier 3 Routing)
       | admin-panel     | Internal admin dashboard           |
       | rest-api        | RESTful API service                |
     And the manifest contains skills
-      | name           | description                    |
-      | auth-cognito   | AWS Cognito authentication     |
-      | auth-auth0     | Auth0 authentication           |
-      | rds-postgres   | PostgreSQL database setup      |
+      | name             | description                    |
+      | auth-cognito     | AWS Cognito authentication     |
+      | auth-auth0       | Auth0 authentication           |
+      | rds-postgres     | PostgreSQL database setup      |
+      | nextjs-standards | Next.js project conventions    |
 
   # LLM Task Selection Scenarios
 
