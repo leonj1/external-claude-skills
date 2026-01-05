@@ -9,7 +9,8 @@ from lib.skill_router.models import Manifest
 from lib.skill_router.exceptions import (
     ManifestNotFoundError,
     ManifestParseError,
-    ManifestValidationError
+    ManifestValidationError,
+    EmptyManifestError
 )
 
 
@@ -107,27 +108,51 @@ class TestEmptyManifestFile:
     def test_handle_empty_manifest_file(self):
         """Scenario: Handle empty manifest file."""
         loader = ManifestLoader()
+
+        # Create a temp file with empty content
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write("")
+            temp_path = f.name
+
+        try:
+            # An EmptyManifestError is raised
+            with pytest.raises(EmptyManifestError) as exc_info:
+                loader.load(temp_path)
+
+            # Error message contains "manifest file is empty"
+            assert "manifest file is empty" in str(exc_info.value)
+            assert exc_info.value.path == temp_path
+        finally:
+            os.unlink(temp_path)
+
+    def test_handle_whitespace_only_manifest_file(self):
+        """Handle manifest file with only whitespace."""
+        loader = ManifestLoader()
+
+        # Create a temp file with whitespace content
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write("   \n\n    \n")
+            temp_path = f.name
+
+        try:
+            # An EmptyManifestError is raised (whitespace-only is treated as empty)
+            with pytest.raises(EmptyManifestError) as exc_info:
+                loader.load(temp_path)
+
+            assert "manifest file is empty" in str(exc_info.value)
+        finally:
+            os.unlink(temp_path)
+
+    def test_load_from_string_empty_content(self):
+        """load_from_string raises ManifestParseError for empty string."""
+        loader = ManifestLoader()
         empty_content = ""
 
-        # A manifest parse error is raised
+        # load_from_string still uses ManifestParseError for empty content
         with pytest.raises(ManifestParseError) as exc_info:
             loader.load_from_string(empty_content)
 
-        # Error message indicates empty manifest
         assert "empty" in str(exc_info.value).lower()
-
-    def test_handle_whitespace_only_manifest(self):
-        """Handle manifest with only whitespace."""
-        loader = ManifestLoader()
-        whitespace_content = "   \n\n    \n"  # Spaces only, no tabs
-
-        # A manifest parse error is raised
-        with pytest.raises(ManifestParseError) as exc_info:
-            loader.load_from_string(whitespace_content)
-
-        # Either "empty" or YAML error is acceptable
-        error_msg = str(exc_info.value).lower()
-        assert "empty" in error_msg or "yaml" in error_msg
 
     def test_handle_comments_only_manifest(self):
         """Handle manifest with only comments."""
@@ -137,7 +162,7 @@ class TestEmptyManifestFile:
 # No actual YAML content
 """
 
-        # A manifest parse error is raised
+        # A manifest parse error is raised (comments-only still parses as empty YAML)
         with pytest.raises(ManifestParseError) as exc_info:
             loader.load_from_string(comments_only)
 

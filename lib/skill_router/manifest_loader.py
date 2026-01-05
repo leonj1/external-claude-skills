@@ -8,7 +8,8 @@ from lib.skill_router.models import Manifest, Skill, Task, Category
 from lib.skill_router.exceptions import (
     ManifestNotFoundError,
     ManifestParseError,
-    ManifestValidationError
+    ManifestValidationError,
+    EmptyManifestError
 )
 from lib.skill_router.manifest_validator import ManifestValidator
 
@@ -41,6 +42,10 @@ class ManifestLoader(IManifestLoader):
         try:
             with open(file_path, 'r') as f:
                 content = f.read()
+
+            if not content.strip():
+                raise EmptyManifestError(path)
+
             return self.load_from_string(content)
         except yaml.YAMLError as e:
             line = getattr(e, 'problem_mark', None)

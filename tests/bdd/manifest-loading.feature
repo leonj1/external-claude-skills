@@ -120,4 +120,5 @@ Feature: YAML Manifest Loading and Validation
   Scenario: Handle empty manifest file
     Given an empty manifest file
     When the system attempts to load the manifest
-    Then a manifest parse error is raised
+    Then an EmptyManifestError is raised
+    And the error message contains "manifest file is empty"

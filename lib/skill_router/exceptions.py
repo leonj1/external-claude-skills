@@ -33,6 +33,17 @@ class ManifestParseError(ManifestError):
             super().__init__(message)
 
 
+class EmptyManifestError(ManifestError):
+    """Raised when a manifest file is empty.
+
+    Attributes:
+        path: The file path that was empty
+    """
+    def __init__(self, path: str):
+        self.path = path
+        super().__init__(f"manifest file is empty: {path}")
+
+
 class ManifestValidationError(ManifestError):
     """Raised when a manifest fails validation checks.
 
