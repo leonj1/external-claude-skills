@@ -124,7 +124,7 @@ Feature: Hook Integration for Claude Code
     Given a route result with type "error"
     When the hook integration generates skill context
     Then no skill context is output
-    And the process exits gracefully
+    And the process exits with code 1
 
   Scenario: Handle empty execution order
     Given a route result with empty execution order

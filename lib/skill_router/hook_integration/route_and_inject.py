@@ -21,6 +21,7 @@ import sys
 from pathlib import Path
 
 from lib.skill_router.manifest_loader import ManifestLoader
+from lib.skill_router.interfaces.router import RouteType
 from lib.skill_router.hook_integration.router_factory import create_router
 from lib.skill_router.hook_integration.skill_content_loader import SkillContentLoader
 from lib.skill_router.hook_integration.skill_context_generator import SkillContextGenerator
@@ -53,14 +54,19 @@ def main() -> int:
         router = create_router(manifest)
         route_result = router.route(query)
 
-        # 5. Generate skill context
+        # 5. Check for error route result
+        if route_result.route_type == RouteType.ERROR:
+            # No skill context for error results, exit with code 1
+            return 1
+
+        # 6. Generate skill context
         skills_root = manifest_path.parent
         content_loader = SkillContentLoader(skills_root)
         context_generator = SkillContextGenerator(content_loader, manifest)
 
         context_output = context_generator.generate(route_result)
 
-        # 6. Output to stdout
+        # 7. Output to stdout
         if context_output:
             print(context_output)
 
