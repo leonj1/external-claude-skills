@@ -86,6 +86,27 @@ skills:
     path: skills/cicd/github-actions
     depends_on: []
 
+  # Docker
+  backend-docker:
+    description: "Backend project Docker container setup"
+    path: skills/repo/backend/docker
+    depends_on: []
+
+  backend-tests-docker:
+    description: "Backend tests Docker container setup"
+    path: skills/repo/backend/tests
+    depends_on: [backend-docker]
+
+  frontend-docker:
+    description: "Frontend project Docker container setup"
+    path: skills/repo/frontend/docker
+    depends_on: []
+
+  frontend-tests-docker:
+    description: "Frontend tests Docker container setup"
+    path: skills/repo/frontend/tests
+    depends_on: [frontend-docker]
+
 
 # =============================================================================
 # TASKS: What users ask for (maps to one or more skills)
