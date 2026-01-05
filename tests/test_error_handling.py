@@ -148,13 +148,6 @@ class TestMissingSectionValidation:
 
     def test_missing_skills_section_in_validator(self):
         """Validator should check for missing required sections."""
-        # Create a manifest without skills
-        manifest = Manifest(
-            skills=None,  # Explicitly missing
-            tasks={},
-            categories={}
-        )
-
         validator = ManifestValidator()
 
         # For now, the validator focuses on reference checking
@@ -163,10 +156,7 @@ class TestMissingSectionValidation:
 
         # Since we're using default_factory in the dataclass,
         # skills should never be None, but always a dict
-        # So this test verifies that the model enforces this
-
-        # Actually, let's test with a properly constructed manifest
-        # that has no skills defined (empty dict is valid)
+        # Test that an empty manifest with no skills is valid
         valid_empty_manifest = Manifest(
             skills={},
             tasks={},
