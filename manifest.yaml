@@ -107,6 +107,12 @@ skills:
     path: skills/repo/frontend/tests
     depends_on: [frontend-docker]
 
+  # Project Setup
+  project-makefile:
+    description: "Project Makefile with Docker lifecycle targets (build, stop, start, restart, test)"
+    path: skills/repo/setup
+    depends_on: []
+
 
 # =============================================================================
 # TASKS: What users ask for (maps to one or more skills)
