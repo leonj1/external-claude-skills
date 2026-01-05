@@ -50,7 +50,7 @@ class ManifestLoader(IManifestLoader):
         except yaml.YAMLError as e:
             line = getattr(e, 'problem_mark', None)
             line_num = line.line + 1 if line else None
-            raise ManifestParseError(f"Invalid YAML syntax: {str(e)}", line=line_num)
+            raise ManifestParseError(f"Invalid YAML syntax: {e!s}", line=line_num) from e
 
     def load_from_string(self, content: str) -> Manifest:
         """Load a manifest from a YAML string.
@@ -95,7 +95,7 @@ class ManifestLoader(IManifestLoader):
         except yaml.YAMLError as e:
             line = getattr(e, 'problem_mark', None)
             line_num = line.line + 1 if line else None
-            raise ManifestParseError(f"Invalid YAML syntax: {str(e)}", line=line_num)
+            raise ManifestParseError(f"Invalid YAML syntax: {e!s}", line=line_num) from e
 
     def _parse_skills(self, skills_data: Dict[str, Any]) -> Dict[str, Skill]:
         """Parse skills section into Skill objects.

@@ -1,15 +1,15 @@
 """Tests for manifest error handling scenarios."""
-import pytest
-import tempfile
 import os
-from pathlib import Path
+import tempfile
+
+import pytest
+
 from lib.skill_router.manifest_loader import ManifestLoader
 from lib.skill_router.manifest_validator import ManifestValidator
 from lib.skill_router.models import Manifest
 from lib.skill_router.exceptions import (
     ManifestNotFoundError,
     ManifestParseError,
-    ManifestValidationError,
     EmptyManifestError
 )
 
@@ -20,11 +20,7 @@ class TestManifestNotFound:
     def test_handle_missing_manifest_file(self):
         """Scenario: Handle missing manifest file."""
         loader = ManifestLoader()
-        non_existent_path = "/tmp/non_existent_manifest_xyz123.yaml"
-
-        # Ensure file doesn't exist
-        if os.path.exists(non_existent_path):
-            os.unlink(non_existent_path)
+        non_existent_path = tempfile.mktemp(suffix='.yaml')
 
         # A manifest not found error is raised
         with pytest.raises(ManifestNotFoundError) as exc_info:
@@ -61,8 +57,8 @@ class TestMissingRequiredSections:
     """Test handling of missing required sections."""
 
     def test_handle_missing_skills_section(self):
-        """Scenario: Handle manifest with missing required sections."""
-        # Note: The validator should check for missing required sections
+        """Scenario: Manifest with empty skills section is structurally valid."""
+        loader = ManifestLoader()
         yaml_without_skills = """
 tasks:
   some-task:
@@ -72,34 +68,12 @@ tasks:
 categories: {}
 """
 
-        loader = ManifestLoader()
-        validator = ManifestValidator()
+        # Load should succeed - empty skills section is allowed
+        manifest = loader.load_from_string(yaml_without_skills)
 
-        # Load the manifest (parsing should work)
-        manifest = Manifest(
-            skills={},  # Missing skills section represented as empty dict
-            tasks={
-                "some-task": loader._parse_tasks({
-                    "some-task": {
-                        "description": "Some task",
-                        "triggers": [],
-                        "skills": []
-                    }
-                })["some-task"]
-            },
-            categories={}
-        )
-
-        # But add a validation rule for missing required section
-        errors = validator.validate(manifest)
-
-        # For now, we expect validation to check references, not section existence
-        # This test documents that empty skills section is allowed
-        # If we want to require skills section, we'd update the validator
-
-        # Check that a manifest without skills is structurally valid
-        # (even if it may not be useful)
+        # Verify empty skills section is represented as empty dict
         assert isinstance(manifest.skills, dict)
+        assert len(manifest.skills) == 0
 
 
 class TestEmptyManifestFile:
