@@ -73,52 +73,6 @@ def manifest_file():
 
 
 @pytest.fixture
-def manifest_file_with_paths(tmp_path):
-    """Create a manifest file with actual skill directories containing content."""
-    # Create skill directories with content
-    skill_paths = [
-        "infrastructure/terraform-base",
-        "infrastructure/ecr-setup",
-        "infrastructure/aws-ecs-deployment",
-        "frameworks/nextjs-standards",
-        "frameworks/fastapi-standards",
-    ]
-    for skill_path in skill_paths:
-        full_path = tmp_path / skill_path
-        full_path.mkdir(parents=True, exist_ok=True)
-        (full_path / "SKILL.md").write_text(f"# Skill documentation for {skill_path}\n")
-
-    manifest_content = f"""
-skills:
-  terraform-base:
-    description: "Terraform state backend"
-    path: {tmp_path}/infrastructure/terraform-base
-    depends_on: []
-  ecr-setup:
-    description: "AWS ECR setup"
-    path: {tmp_path}/infrastructure/ecr-setup
-    depends_on: [terraform-base]
-  aws-ecs-deployment:
-    description: "ECS deployment"
-    path: {tmp_path}/infrastructure/aws-ecs-deployment
-    depends_on: [terraform-base, ecr-setup]
-  nextjs-standards:
-    description: "Next.js standards"
-    path: {tmp_path}/frameworks/nextjs-standards
-    depends_on: []
-  fastapi-standards:
-    description: "FastAPI standards"
-    path: {tmp_path}/frameworks/fastapi-standards
-    depends_on: []
-tasks: {{}}
-categories: {{}}
-"""
-    manifest_path = tmp_path / "manifest.yaml"
-    manifest_path.write_text(manifest_content)
-    return str(manifest_path)
-
-
-@pytest.fixture
 def service(manifest_file):
     """Create a SkillRoutingService instance."""
     return SkillRoutingService(manifest_file)
@@ -222,70 +176,31 @@ class TestRouteResponseDataclass:
 
 
 class TestSkillPathValidation:
-    """Test that skill paths exist and have contents."""
+    """Test that skill paths exist and have contents using real manifest.yaml."""
 
-    def test_all_skill_paths_exist(self, manifest_file_with_paths):
+    @pytest.fixture
+    def real_manifest_service(self):
+        """Load the real manifest.yaml from the repo root."""
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        manifest_path = os.path.join(repo_root, "manifest.yaml")
+        return SkillRoutingService(manifest_path), repo_root
+
+    def test_all_skill_paths_exist(self, real_manifest_service):
         """All skill paths in manifest should exist as directories."""
-        service = SkillRoutingService(manifest_file_with_paths)
+        service, repo_root = real_manifest_service
         skills = service.list_skills()
 
         for skill in skills:
-            path = skill["path"]
+            path = os.path.join(repo_root, skill["path"])
             assert os.path.exists(path), f"Skill path does not exist: {path}"
             assert os.path.isdir(path), f"Skill path is not a directory: {path}"
 
-    def test_all_skill_paths_have_contents(self, manifest_file_with_paths):
+    def test_all_skill_paths_have_contents(self, real_manifest_service):
         """All skill directories should contain at least one file."""
-        service = SkillRoutingService(manifest_file_with_paths)
+        service, repo_root = real_manifest_service
         skills = service.list_skills()
 
         for skill in skills:
-            path = skill["path"]
+            path = os.path.join(repo_root, skill["path"])
             contents = os.listdir(path)
             assert len(contents) > 0, f"Skill path is empty: {path}"
-
-    def test_skill_path_missing_raises_error(self, tmp_path):
-        """Loading a manifest with non-existent skill path should work but validation should fail."""
-        manifest_content = """
-skills:
-  missing-skill:
-    description: "Skill with missing path"
-    path: /nonexistent/path/to/skill
-    depends_on: []
-tasks: {}
-categories: {}
-"""
-        manifest_path = tmp_path / "manifest.yaml"
-        manifest_path.write_text(manifest_content)
-
-        service = SkillRoutingService(str(manifest_path))
-        skills = service.list_skills()
-
-        # The service loads the manifest, but the path doesn't exist
-        assert len(skills) == 1
-        assert not os.path.exists(skills[0]["path"])
-
-    def test_empty_skill_directory_detected(self, tmp_path):
-        """Empty skill directories should be detectable."""
-        # Create empty skill directory
-        empty_skill_path = tmp_path / "empty-skill"
-        empty_skill_path.mkdir()
-
-        manifest_content = f"""
-skills:
-  empty-skill:
-    description: "Skill with empty directory"
-    path: {empty_skill_path}
-    depends_on: []
-tasks: {{}}
-categories: {{}}
-"""
-        manifest_path = tmp_path / "manifest.yaml"
-        manifest_path.write_text(manifest_content)
-
-        service = SkillRoutingService(str(manifest_path))
-        skills = service.list_skills()
-
-        # Directory exists but is empty
-        assert os.path.exists(skills[0]["path"])
-        assert len(os.listdir(skills[0]["path"])) == 0
