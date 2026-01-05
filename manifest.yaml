@@ -1,3 +1,179 @@
-skills: {}
-tasks: {}
-categories: {}
+# ~/.claude/skills/manifest.yaml
+
+# =============================================================================
+# SKILLS: The actual capabilities (flat list, with dependencies)
+# =============================================================================
+skills:
+  # Infrastructure - Base Layer
+  terraform-base:
+    description: "Terraform state backend, providers, and module conventions"
+    path: infrastructure/terraform-base
+    depends_on: []
+    
+  ecr-setup:
+    description: "AWS ECR container registry setup"
+    path: infrastructure/ecr-setup
+    depends_on: [terraform-base]
+
+  # Infrastructure - AWS
+  aws-static-hosting:
+    description: "S3 + CloudFront for static asset hosting"
+    path: infrastructure/aws-static-hosting
+    depends_on: [terraform-base]
+    
+  aws-ecs-deployment:
+    description: "ECS Fargate container deployment with load balancing"
+    path: infrastructure/aws-ecs-deployment
+    depends_on: [terraform-base, ecr-setup]
+    
+  aws-lambda-deployment:
+    description: "Lambda function deployment with API Gateway"
+    path: infrastructure/aws-lambda-deployment
+    depends_on: [terraform-base]
+
+  # Infrastructure - Kubernetes
+  eks-cluster:
+    description: "AWS EKS Kubernetes cluster setup"
+    path: infrastructure/eks-cluster
+    depends_on: [terraform-base]
+    
+  k8s-deployment:
+    description: "Kubernetes deployment manifests and Helm charts"
+    path: infrastructure/k8s-deployment
+    depends_on: [eks-cluster]
+
+  # Application Frameworks
+  nextjs-standards:
+    description: "Next.js project structure and conventions"
+    path: frameworks/nextjs-standards
+    depends_on: []
+    
+  react-admin-standards:
+    description: "React admin dashboard patterns and components"
+    path: frameworks/react-admin-standards
+    depends_on: []
+    
+  fastapi-standards:
+    description: "FastAPI project structure and conventions"
+    path: frameworks/fastapi-standards
+    depends_on: []
+
+  # Auth & Security
+  auth-cognito:
+    description: "AWS Cognito authentication setup"
+    path: auth/auth-cognito
+    depends_on: [terraform-base]
+    
+  auth-auth0:
+    description: "Auth0 authentication integration"
+    path: auth/auth-auth0
+    depends_on: []
+
+  # Data
+  rds-postgres:
+    description: "AWS RDS PostgreSQL database setup"
+    path: data/rds-postgres
+    depends_on: [terraform-base]
+    
+  dynamodb-setup:
+    description: "DynamoDB table setup with access patterns"
+    path: data/dynamodb-setup
+    depends_on: [terraform-base]
+
+  # CI/CD
+  github-actions-cicd:
+    description: "GitHub Actions CI/CD pipelines"
+    path: cicd/github-actions
+    depends_on: []
+
+
+# =============================================================================
+# TASKS: What users ask for (maps to one or more skills)
+# =============================================================================
+tasks:
+  # Web Development - Static
+  static-website:
+    description: "Static website, landing page, marketing site, or documentation site"
+    triggers:
+      - "build a static website"
+      - "create a landing page"
+      - "make a marketing site"
+      - "create a documentation site"
+      - "build a homepage"
+      - "create a product page"
+      - "build a blog"
+    skills: [nextjs-standards, aws-static-hosting, github-actions-cicd]
+    
+  documentation-site:
+    description: "Technical documentation site"
+    triggers:
+      - "create documentation"
+      - "build a docs site"
+      - "create API documentation"
+    skills: [nextjs-standards, aws-static-hosting]
+
+  # Web Development - Dynamic
+  admin-panel:
+    description: "Internal admin dashboard or back-office tool"
+    triggers:
+      - "build an admin panel"
+      - "create a dashboard"
+      - "create an internal tool"
+      - "build a back-office"
+      - "create a management interface"
+    skills: [react-admin-standards, fastapi-standards, aws-ecs-deployment, rds-postgres, auth-cognito]
+    
+  customer-portal:
+    description: "Customer-facing web application with authentication"
+    triggers:
+      - "build a customer portal"
+      - "create a user dashboard"
+      - "build a client application"
+      - "create a self-service portal"
+    skills: [nextjs-standards, aws-ecs-deployment, auth-cognito, rds-postgres]
+
+  # APIs
+  rest-api:
+    description: "RESTful API service"
+    triggers:
+      - "build an API"
+      - "create a REST API"
+      - "build a backend service"
+      - "create microservices"
+    skills: [fastapi-standards, aws-ecs-deployment, rds-postgres]
+    
+  serverless-api:
+    description: "Serverless API with Lambda"
+    triggers:
+      - "build a serverless API"
+      - "create a Lambda function"
+      - "build a serverless backend"
+    skills: [fastapi-standards, aws-lambda-deployment, dynamodb-setup]
+
+  # Infrastructure Only
+  kubernetes-setup:
+    description: "Kubernetes cluster and deployment setup"
+    triggers:
+      - "set up Kubernetes"
+      - "create a K8s cluster"
+      - "deploy to Kubernetes"
+    skills: [eks-cluster, k8s-deployment]
+
+
+# =============================================================================
+# CATEGORIES: Optional grouping for browsing/discovery (not required for routing)
+# =============================================================================
+categories:
+  web-development:
+    description: "Websites and web applications"
+    tasks: [static-website, documentation-site, admin-panel, customer-portal]
+    
+  backend:
+    description: "APIs and backend services"
+    tasks: [rest-api, serverless-api]
+    
+  infrastructure:
+    description: "Cloud infrastructure and DevOps"
+    tasks: [kubernetes-setup]
+    # Also exposes raw skills for direct access
+    skills: [terraform-base, aws-static-hosting, aws-ecs-deployment, aws-lambda-deployment, eks-cluster]

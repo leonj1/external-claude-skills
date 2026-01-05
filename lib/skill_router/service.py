@@ -100,3 +100,18 @@ class SkillRoutingService:
         """
         result = self._router.route(query)
         return RouteResponse.from_route_result(result)
+
+    def list_skills(self) -> List[dict]:
+        """List all available skills from the manifest.
+
+        Returns:
+            List of skill dictionaries with name, description, and path
+        """
+        return [
+            {
+                "name": name,
+                "description": skill.description,
+                "path": skill.path,
+            }
+            for name, skill in self.manifest.skills.items()
+        ]

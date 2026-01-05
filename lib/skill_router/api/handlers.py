@@ -55,6 +55,11 @@ def create_app(manifest_path: str) -> FastAPI:
         """Health check endpoint."""
         return {"status": "healthy"}
 
+    @app.get("/skills")
+    def list_skills():
+        """List all available skills."""
+        return {"skills": service.list_skills()}
+
     return app
 
 
