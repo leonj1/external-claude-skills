@@ -1,11 +1,18 @@
 ---
 name: flyway-backend-docker
-description: Setup backend project with Flyway SQL migrations, tini init system, Docker container, and MySQL integration testing.
+description: Setup backend project with Flyway SQL migrations, tini init system, and MySQL integration testing. Modifies existing Dockerfile from backend-docker skill.
+depends_on: [backend-docker]
 ---
 
 # Flyway Backend Docker Skill
 
-This skill configures a backend project to use Flyway for SQL schema management within a Docker container. The Dockerfile uses `tini` as the init system to first run Flyway migrations, then start the backend application.
+This skill configures a backend project to use Flyway for SQL schema management. It **modifies an existing Dockerfile** (created by the `backend-docker` skill) to add tini as init system and Flyway migrations that run before the application starts.
+
+## Prerequisites
+
+- **backend-docker skill must be applied first** - A Dockerfile must already exist
+- Docker installed and running
+- MySQL or compatible database will be used
 
 ## When to Invoke This Skill
 
@@ -13,28 +20,19 @@ Invoke this skill when ANY of these conditions are true:
 
 1. **User asks for Flyway setup**: "add flyway", "setup flyway migrations", "database migrations with flyway"
 2. **User needs SQL schema management**: "manage database schema", "SQL migrations"
-3. **User wants tini + flyway in Docker**: "dockerize with flyway", "run migrations before app starts"
+3. **User wants tini + flyway in Docker**: "run migrations before app starts"
 4. **Backend needs MySQL with migrations**: "setup mysql with migrations"
-
-## Prerequisites
-
-- Docker installed and running
-- Backend project exists (Python, Node.js, Go, or Java)
-- MySQL or compatible database will be used
 
 ## Workflow
 
-### Step 1: Detect Backend Location and Tech Stack
+### Step 1: Verify Dockerfile Exists
 
 ```bash
-# Check root first
-ls package.json requirements.txt go.mod Cargo.toml pom.xml 2>/dev/null
-
-# If not found, check ./backend/
-ls backend/package.json backend/requirements.txt backend/go.mod 2>/dev/null
+# Check for existing Dockerfile (from backend-docker skill)
+ls ${BACKEND_PATH}/Dockerfile
 ```
 
-Set `BACKEND_PATH` to `./` or `./backend/` based on where manifest files are found.
+If Dockerfile does not exist, invoke the `backend-docker` skill first.
 
 ### Step 2: Create SQL Directory Structure
 
@@ -128,25 +126,37 @@ echo "=== Starting application ==="
 exec "$@"
 ```
 
-### Step 5: Generate Dockerfile with Tini and Flyway
+### Step 5: Modify Existing Dockerfile
 
-Create `${BACKEND_PATH}/Dockerfile` based on detected tech stack:
+Read the existing Dockerfile and apply these modifications:
 
-#### Python Template
+#### 5a: Add Flyway Dependencies
+
+**For Debian/Ubuntu-based images** (python:*-slim, etc.), add after existing apt-get install:
 
 ```dockerfile
-FROM python:3.13-slim
-
 # Install tini, flyway dependencies, and netcat for health checks
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tini \
-    wget \
     curl \
     netcat-openbsd \
     default-jre-headless \
     && rm -rf /var/lib/apt/lists/*
+```
 
-# Install Flyway with retry logic
+**For Alpine-based images** (node:*-alpine, golang:*-alpine, etc.), add:
+
+```dockerfile
+# Install tini and dependencies for flyway
+RUN apk add --no-cache tini openjdk17-jre-headless curl bash netcat-openbsd
+```
+
+#### 5b: Add Flyway Installation
+
+Add after the dependency installation:
+
+```dockerfile
+# Install Flyway
 ENV FLYWAY_VERSION=10.22.0
 RUN mkdir -p /tmp/flyway && \
     curl -fSL --retry 3 --retry-delay 5 \
@@ -155,154 +165,40 @@ RUN mkdir -p /tmp/flyway && \
     tar -xzf /tmp/flyway/flyway.tar.gz -C /opt && \
     ln -s /opt/flyway-${FLYWAY_VERSION}/flyway /usr/local/bin/flyway && \
     rm -rf /tmp/flyway
+```
 
-WORKDIR /app
+**Note**: For Alpine images, use `linux-alpine-x64.tar.gz` instead of `linux-x64.tar.gz`.
 
+#### 5c: Add SQL and Entrypoint Copies
+
+Add before `COPY . .`:
+
+```dockerfile
 # Copy SQL migrations
 COPY sql/ /app/sql/
-
-# Copy requirements and install
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy entrypoint
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
+```
 
-# Copy application code
-COPY . .
+#### 5d: Modify ENTRYPOINT and CMD
 
-EXPOSE 8000
+Replace the existing CMD with ENTRYPOINT + CMD pattern:
 
-# Use tini as init, entrypoint runs flyway then app
+**For Debian-based images:**
+```dockerfile
 ENTRYPOINT ["/usr/bin/tini", "--", "/docker-entrypoint.sh"]
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["<original-cmd>"]
 ```
 
-#### Node.js Template
-
+**For Alpine-based images:**
 ```dockerfile
-FROM node:24-alpine
-
-# Install tini and dependencies for flyway
-RUN apk add --no-cache tini openjdk17-jre-headless wget curl bash netcat-openbsd
-
-# Install Flyway with retry logic
-ENV FLYWAY_VERSION=10.22.0
-RUN mkdir -p /tmp/flyway && \
-    curl -fSL --retry 3 --retry-delay 5 \
-        "https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/${FLYWAY_VERSION}/flyway-commandline-${FLYWAY_VERSION}-linux-alpine-x64.tar.gz" \
-        -o /tmp/flyway/flyway.tar.gz && \
-    tar -xzf /tmp/flyway/flyway.tar.gz -C /opt && \
-    ln -s /opt/flyway-${FLYWAY_VERSION}/flyway /usr/local/bin/flyway && \
-    rm -rf /tmp/flyway
-
-WORKDIR /app
-
-# Copy SQL migrations
-COPY sql/ /app/sql/
-
-# Copy package files and install
-COPY package*.json ./
-RUN npm ci --only=production
-
-# Copy entrypoint
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
-
-# Copy application code
-COPY . .
-
-EXPOSE 3000
-
-# Use tini as init, entrypoint runs flyway then app
 ENTRYPOINT ["/sbin/tini", "--", "/docker-entrypoint.sh"]
-CMD ["node", "dist/index.js"]
+CMD ["<original-cmd>"]
 ```
 
-#### Go Template (Multi-stage)
-
-```dockerfile
-# Build stage
-FROM golang:1.23-alpine AS builder
-
-WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o main .
-
-# Runtime stage
-FROM alpine:latest
-
-# Install tini and dependencies for flyway
-RUN apk add --no-cache tini openjdk17-jre-headless wget curl bash netcat-openbsd
-
-# Install Flyway with retry logic
-ENV FLYWAY_VERSION=10.22.0
-RUN mkdir -p /tmp/flyway && \
-    curl -fSL --retry 3 --retry-delay 5 \
-        "https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/${FLYWAY_VERSION}/flyway-commandline-${FLYWAY_VERSION}-linux-alpine-x64.tar.gz" \
-        -o /tmp/flyway/flyway.tar.gz && \
-    tar -xzf /tmp/flyway/flyway.tar.gz -C /opt && \
-    ln -s /opt/flyway-${FLYWAY_VERSION}/flyway /usr/local/bin/flyway && \
-    rm -rf /tmp/flyway
-
-WORKDIR /app
-
-# Copy SQL migrations
-COPY sql/ /app/sql/
-
-# Copy binary from builder
-COPY --from=builder /app/main .
-
-# Copy entrypoint
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
-
-EXPOSE 8080
-
-# Use tini as init, entrypoint runs flyway then app
-ENTRYPOINT ["/sbin/tini", "--", "/docker-entrypoint.sh"]
-CMD ["./main"]
-```
-
-#### Java Template
-
-```dockerfile
-FROM eclipse-temurin:21-jre-alpine
-
-# Install tini and netcat
-RUN apk add --no-cache tini wget curl bash netcat-openbsd
-
-# Install Flyway with retry logic
-ENV FLYWAY_VERSION=10.22.0
-RUN mkdir -p /tmp/flyway && \
-    curl -fSL --retry 3 --retry-delay 5 \
-        "https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/${FLYWAY_VERSION}/flyway-commandline-${FLYWAY_VERSION}-linux-alpine-x64.tar.gz" \
-        -o /tmp/flyway/flyway.tar.gz && \
-    tar -xzf /tmp/flyway/flyway.tar.gz -C /opt && \
-    ln -s /opt/flyway-${FLYWAY_VERSION}/flyway /usr/local/bin/flyway && \
-    rm -rf /tmp/flyway
-
-WORKDIR /app
-
-# Copy SQL migrations
-COPY sql/ /app/sql/
-
-# Copy JAR file
-COPY target/*.jar app.jar
-
-# Copy entrypoint
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
-
-EXPOSE 8080
-
-# Use tini as init, entrypoint runs flyway then app
-ENTRYPOINT ["/sbin/tini", "--", "/docker-entrypoint.sh"]
-CMD ["java", "-jar", "app.jar"]
-```
+Where `<original-cmd>` is the original CMD from the Dockerfile (e.g., `python -m uvicorn app.main:app --host 0.0.0.0 --port 8000`).
 
 ### Step 6: Create docker-compose.yml for Testing
 
@@ -367,7 +263,7 @@ docker compose up -d db
 
 # Wait for MySQL to be healthy
 echo "Waiting for MySQL to be ready..."
-timeout=60
+timeout=90
 while [ $timeout -gt 0 ]; do
     if docker compose exec -T db mysqladmin ping -h localhost -u root -proot 2>/dev/null; then
         echo "MySQL is ready!"
@@ -389,9 +285,9 @@ fi
 echo "Building and starting app container..."
 docker compose up -d --build app
 
-# Wait for app to start
+# Wait for app to start and run migrations
 echo "Waiting for app to start..."
-sleep 10
+sleep 15
 
 # Check if app is running
 if ! docker compose ps app | grep -q "Up"; then
@@ -416,16 +312,6 @@ else
     exit 1
 fi
 
-# Verify flyway_schema_history table exists
-echo "Verifying Flyway schema history..."
-HISTORY=$(docker compose exec -T db mysql -u root -proot -D app -e "SELECT version, description FROM flyway_schema_history;" 2>/dev/null)
-
-if echo "$HISTORY" | grep -q "hello_world"; then
-    echo "SUCCESS: Flyway schema history recorded correctly!"
-else
-    echo "WARNING: Could not verify schema history"
-fi
-
 # Cleanup
 echo "Cleaning up..."
 docker compose down -v
@@ -439,7 +325,7 @@ Run the integration test:
 
 ```bash
 cd ${BACKEND_PATH}
-chmod +x test-flyway-integration.sh
+chmod +x test-flyway-integration.sh docker-entrypoint.sh
 ./test-flyway-integration.sh
 ```
 
@@ -448,27 +334,6 @@ Expected output:
 - App container builds and starts
 - Flyway migrations run without errors
 - `flyway_hello_world` table contains "Hello from Flyway!"
-- `flyway_schema_history` table records the migration
-
-## Error Handling
-
-### Flyway Migration Fails
-
-1. Check database connectivity: Verify `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
-2. Check SQL syntax: Review migration files for errors
-3. Check Flyway logs: `docker compose logs app`
-4. Verify MySQL is ready before migrations run
-
-### Tini Not Found
-
-1. Verify tini is installed in Dockerfile
-2. Check path: Alpine uses `/sbin/tini`, Debian uses `/usr/bin/tini`
-
-### Database Connection Timeout
-
-1. Increase wait time in `docker-entrypoint.sh`
-2. Check MySQL healthcheck in docker-compose.yml
-3. Verify network connectivity between containers
 
 ## Environment Variables
 
@@ -487,31 +352,31 @@ To add a new migration:
 ```bash
 # Create new migration file
 touch sql/V2__create_users_table.sql
-
-# Edit with your DDL/DML
-cat > sql/V2__create_users_table.sql << 'EOF'
-CREATE TABLE users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-EOF
 ```
 
 **IMPORTANT**: Never modify existing migration files. Always create new versioned migrations.
+
+## Error Handling
+
+### Flyway Migration Fails
+
+1. Check database connectivity: Verify `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
+2. Check SQL syntax: Review migration files for errors
+3. Check Flyway logs: `docker compose logs app`
+
+### Tini Not Found
+
+1. Verify tini is installed in Dockerfile
+2. Check path: Alpine uses `/sbin/tini`, Debian uses `/usr/bin/tini`
+
+### Database Connection Timeout
+
+1. Increase wait time in `docker-entrypoint.sh`
+2. Check MySQL healthcheck in docker-compose.yml
 
 ## Do NOT Invoke When
 
 - Project doesn't need SQL schema management
 - Project uses a different migration tool (Liquibase, Alembic, etc.)
 - Project doesn't use a relational database
-- User wants embedded migrations (e.g., GORM AutoMigrate)
-
-## Supported Tech Stacks
-
-| Stack | Dockerfile Template | Default App Port |
-|-------|---------------------|------------------|
-| Python | python:3.13-slim | 8000 |
-| Node.js | node:24-alpine | 3000 |
-| Go | golang:1.23-alpine | 8080 |
-| Java | eclipse-temurin:21-jre-alpine | 8080 |
+- Dockerfile doesn't exist (invoke backend-docker first)

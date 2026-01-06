@@ -78,9 +78,9 @@ skills:
     depends_on: []
 
   flyway-backend-docker:
-    description: "Setup backend project with Flyway SQL migrations, tini init system, Docker container, and MySQL integration testing."
+    description: "Setup backend project with Flyway SQL migrations, tini init system, and MySQL integration testing. Modifies existing Dockerfile."
     path: skills/data/flyway-backend-docker
-    depends_on: []
+    depends_on: [backend-docker]
 
 
 # =============================================================================
