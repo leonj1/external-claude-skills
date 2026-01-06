@@ -77,6 +77,11 @@ skills:
     path: skills/violation-scanner
     depends_on: []
 
+  flyway-backend-docker:
+    description: "Setup backend project with Flyway SQL migrations, tini init system, Docker container, and MySQL integration testing."
+    path: skills/data/flyway-backend-docker
+    depends_on: []
+
 
 # =============================================================================
 # TASKS: What users ask for (maps to one or more skills)
